@@ -15,7 +15,7 @@
 #define CHAR_SPACING  1 // pixels between characters
 #define BUF_SIZE  75
 
-const char *ssid     = "Dep guests";
+const char *ssid = "Dep guests";
 const char *password;
 const long utcOffsetInSeconds = 7200;
 
@@ -30,6 +30,7 @@ MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 void setup()
 {
   parolaClient.begin();
+  //parolaClient.setIntensity(0, 1);
 
   Serial.begin(115200);
 
@@ -49,6 +50,7 @@ void loop()
 
   // Serial.print(daysOfTheWeek[timeClient.getDay()]);
   
+  //sprintf (message, "%02u:%02u:%02u", timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
   timeClient.getFormattedTime().toCharArray(message, 75);
   
   parolaClient.displayText(message, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
