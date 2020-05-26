@@ -5,19 +5,22 @@
 #include <MD_MAX72xx.h>
 // #include <SPI.h>
 
+#include "fonts_data.h"
+
 #define HARDWARE_TYPE MD_MAX72XX::GENERIC_HW
-#define MAX_DEVICES 5
+#define MAX_DEVICES 1 //5
 
 #define CLK_PIN   D5  // or SCK
 #define DATA_PIN  D7  // or MOSI
 #define CS_PIN    D4  // or SS
 
-#define CHAR_SPACING  1 // pixels between characters
 #define BUF_SIZE  75
 
 const char *ssid = "Dep guests";
 const char *password;
 const long utcOffsetInSeconds = 7200;
+const char *invader1 = "\x01";
+const char *invader2 = "\x02";
 
 char message[BUF_SIZE];
 
@@ -42,15 +45,19 @@ void setup()
   }
 
   timeClient.begin();
+
+  parolaClient.setFont(fontInvaders);
+  parolaClient.displayText(invader2, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
+
+  delay(5000);
+
+  parolaClient.setFont(nullptr);
 }
 
 void loop()
 {
   timeClient.update();
-
-  // Serial.print(daysOfTheWeek[timeClient.getDay()]);
-  
-  //sprintf (message, "%02u:%02u:%02u", timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
   timeClient.getFormattedTime().toCharArray(message, 75);
   
   parolaClient.displayText(message, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
