@@ -8,7 +8,7 @@
 #include "fonts_data.h"
 
 #define HARDWARE_TYPE MD_MAX72XX::GENERIC_HW
-#define MAX_DEVICES 1 //5
+#define MAX_DEVICES 5
 
 #define CLK_PIN   D5  // or SCK
 #define DATA_PIN  D7  // or MOSI
@@ -21,6 +21,17 @@ const char *password;
 const long utcOffsetInSeconds = 7200;
 const char *invader1 = "\x01";
 const char *invader2 = "\x02";
+
+const char *tiny0 = "\x0A";
+const char *tiny1 = "\x01";
+const char *tiny2 = "\x02";
+const char *tiny3 = "\x03";
+const char *tiny4 = "\x04";
+const char *tiny5 = "\x05";
+const char *tiny6 = "\x06";
+const char *tiny7 = "\x07";
+const char *tiny8 = "\x08";
+const char *tiny9 = "\x09";
 
 char message[BUF_SIZE];
 
@@ -46,13 +57,17 @@ void setup()
 
   timeClient.begin();
 
-  parolaClient.setFont(fontInvaders);
-  parolaClient.displayText(invader2, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  parolaClient.displayAnimate();
+  // parolaClient.setFont(fontInvaders);
+  // parolaClient.displayText(invader1, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  // parolaClient.displayAnimate();
 
-  delay(5000);
+  parolaClient.setFont(fontTinyNumbers);
+  // parolaClient.displayText(tiny0, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  // parolaClient.displayAnimate();
 
-  parolaClient.setFont(nullptr);
+  // delay(5000);
+
+  // parolaClient.setFont(nullptr);
 }
 
 void loop()
@@ -61,6 +76,7 @@ void loop()
   timeClient.getFormattedTime().toCharArray(message, 75);
   
   parolaClient.displayText(message, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  Serial.print(message);
   parolaClient.displayAnimate();
 
   delay(1000);
