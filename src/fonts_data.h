@@ -1,13 +1,13 @@
 // Data file for user example user defined fonts
 #pragma once
 
-MD_MAX72XX::fontType_t fontInvaders[] PROGMEM = 
+MD_MAX72XX::fontType_t fontIcons[] PROGMEM = 
 {
 	0, 	// 0
 	8, 152, 92, 182, 95, 95, 182, 92, 152, 	// 1invader1
 	8, 120, 60, 247, 60, 60, 247, 60, 120, 	// 2invader2
-	0, 	// 3
-	0, 	// 4
+	8, 60, 66, 129, 157, 145, 145, 66, 60,  // 3clock
+	8, 0, 0, 12, 12, 96, 144, 144, 144, 	// 4celcius
 	0, 	// 5
 	0, 	// 6
 	0, 	// 7

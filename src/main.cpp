@@ -19,8 +19,11 @@
 const char *ssid = "Dep guests";
 const char *password;
 const long utcOffsetInSeconds = 7200;
-const char *invader1 = "\x01";
-const char *invader2 = "\x02";
+
+const char *invader1icon = "\x01";
+const char *invader2icon = "\x02";
+const char *clockicon = "\x03";
+const char *celciusicon = "\x04";
 
 const char *tiny0 = "\x0A";
 const char *tiny1 = "\x01";
@@ -43,7 +46,11 @@ MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 void setup()
 {
-  parolaClient.begin();
+  //Set 2 parola zones
+  parolaClient.begin(2);
+  parolaClient.setZone(0, 4, 4);
+  parolaClient.setZone(1, 0, 3);
+
   //parolaClient.setIntensity(0, 1);
 
   Serial.begin(115200);
@@ -57,17 +64,11 @@ void setup()
 
   timeClient.begin();
 
-  // parolaClient.setFont(fontInvaders);
-  // parolaClient.displayText(invader1, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  // parolaClient.displayAnimate();
+  parolaClient.setFont(0, fontIcons);
+  parolaClient.setFont(1, fontTinyNumbers);
 
-  parolaClient.setFont(fontTinyNumbers);
-  // parolaClient.displayText(tiny0, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  // parolaClient.displayAnimate();
-
-  // delay(5000);
-
-  // parolaClient.setFont(nullptr);
+  parolaClient.displayZoneText(0, clockicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
 }
 
 void loop()
@@ -75,8 +76,7 @@ void loop()
   timeClient.update();
   timeClient.getFormattedTime().toCharArray(message, 75);
   
-  parolaClient.displayText(message, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  Serial.print(message);
+  parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
   parolaClient.displayAnimate();
 
   delay(1000);
