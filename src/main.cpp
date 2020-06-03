@@ -1,10 +1,12 @@
 #include <NTPClient.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
+#include <ArduinoJson.h>
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
-// #include <SPI.h>
 
+#include "arduino_secrets.h"
 #include "fonts_data.h"
 
 #define HARDWARE_TYPE MD_MAX72XX::GENERIC_HW
@@ -16,7 +18,7 @@
 
 #define BUF_SIZE  75
 
-const char *ssid = "Dep guests";
+const char *ssid = SSID_GUESTS;
 const char *password;
 const long utcOffsetInSeconds = 7200;
 
@@ -25,16 +27,22 @@ const char *invader2icon = "\x02";
 const char *clockicon = "\x03";
 const char *celciusicon = "\x04";
 
-const char *tiny0 = "\x0A";
-const char *tiny1 = "\x01";
-const char *tiny2 = "\x02";
-const char *tiny3 = "\x03";
-const char *tiny4 = "\x04";
-const char *tiny5 = "\x05";
-const char *tiny6 = "\x06";
-const char *tiny7 = "\x07";
-const char *tiny8 = "\x08";
-const char *tiny9 = "\x09";
+// ** OpenWeather
+const char* host = "https://api.openweathermap.org";
+const char* url = "/data/2.5/weather";
+const char* openweathermapid = OPENWEATHER_API_ID;
+const char* openweathermapq = OPENWEATHER_API_LOCATION;
+const char* openweathermapunits = "metric"; //So that OpenWeather will return Celsius
+const char* fingerprint = OPENWEATHER_API_FINGERPRINT;
+const size_t capacity = JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(1) + 2*JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(13) + 280;
+
+String openWeatherEndPoint = String(host) + String(url) +
+               "?q=" + openweathermapq +
+               "&units=" + openweathermapunits +
+               "&APPID=" + openweathermapid;
+
+String line;
+// **
 
 char message[BUF_SIZE];
 
@@ -46,14 +54,20 @@ MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 void setup()
 {
+  Serial.begin(115200);
+
   //Set 2 parola zones
   parolaClient.begin(2);
   parolaClient.setZone(0, 4, 4);
   parolaClient.setZone(1, 0, 3);
 
-  //parolaClient.setIntensity(0, 1);
+  parolaClient.setFont(0, fontIcons);
+  parolaClient.setFont(1, fontTinyNumbers);
 
-  Serial.begin(115200);
+  parolaClient.displayZoneText(0, clockicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
+
+  //parolaClient.setIntensity(0, 1);
 
   WiFi.begin(ssid, password);
 
@@ -64,11 +78,50 @@ void setup()
 
   timeClient.begin();
 
-  parolaClient.setFont(0, fontIcons);
-  parolaClient.setFont(1, fontTinyNumbers);
+  Serial.println(openWeatherEndPoint);
 
-  parolaClient.displayZoneText(0, clockicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  parolaClient.displayAnimate();
+  delay ( 1500 );
+
+  WiFiClient wifiClient;
+  HTTPClient httpClient;
+  httpClient.begin(openWeatherEndPoint, fingerprint);
+
+  int httpCode = httpClient.GET();
+  Serial.println(String(httpCode));
+
+  if(httpCode == HTTP_CODE_OK)
+  {
+    String payload = httpClient.getString();
+
+    Serial.println(payload);
+
+    DynamicJsonDocument doc(capacity);
+    deserializeJson(doc, payload);
+
+    JsonObject main = doc["main"];
+    double main_temp = main["temp"];
+    char buffer[64];
+    sprintf(buffer, "Temperature: %.02f", main_temp);
+    Serial.println(buffer);
+
+    // const int humidity = root["main"]["humidity"];
+    // sprintf(buffer, "Humidity: %d", humidity);
+    // Serial.println(buffer);
+
+    // const int pressure = root["main"]["pressure"];
+    // sprintf(buffer, "Pressure: %d", pressure);
+    // Serial.println(buffer);
+
+    // const double wind = root["wind"]["speed"];
+    // sprintf(buffer, "Wind speed: %.02f m/s", wind);
+    // Serial.println(buffer);
+
+    // const char* weather = root["weather"][0]["main"];
+    // const char* description = root["weather"][0]["description"];
+    // sprintf(buffer, "Weather: %s (%s)", weather, description);
+    // Serial.println(buffer);
+  }
+  httpClient.end();
 }
 
 void loop()
