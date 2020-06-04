@@ -84,6 +84,9 @@ void setup()
 
   WiFiClient wifiClient;
   HTTPClient httpClient;
+
+  //TODO: Glenn - check : https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266HTTPClient/examples/BasicHttpsClient/BasicHttpsClient.ino
+  //TODO: Glenn - calling begin with added fingerprint is deprecated?
   httpClient.begin(openWeatherEndPoint, fingerprint);
 
   int httpCode = httpClient.GET();
