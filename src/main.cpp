@@ -34,6 +34,7 @@ const char* openweathermapid = OPENWEATHER_API_ID;
 const char* openweathermapq = OPENWEATHER_API_LOCATION;
 const char* openweathermapunits = "metric"; //So that OpenWeather will return Celsius
 const char* fingerprint = OPENWEATHER_API_FINGERPRINT;
+//Determining capacipy is done by pasting JSON data into the input part of this site https://arduinojson.org/v6/assistant/
 const size_t capacity = JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(1) + 2*JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(13) + 280;
 
 String openWeatherEndPoint = String(host) + String(url) +
@@ -80,50 +81,62 @@ void setup()
 
   Serial.println(openWeatherEndPoint);
 
-  delay ( 1500 );
+  //TODO: Glenn - Remove delay ( only needed for Serial monitor viewing )
+  delay ( 2500 );
 
-  WiFiClient wifiClient;
+  WiFiClientSecure wifiClient;
   HTTPClient httpClient;
 
-  //TODO: Glenn - check : https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266HTTPClient/examples/BasicHttpsClient/BasicHttpsClient.ino
-  //TODO: Glenn - calling begin with added fingerprint is deprecated?
-  httpClient.begin(openWeatherEndPoint, fingerprint);
+  //You need to set the website fingerprint to enable HTTPS - https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266HTTPClient/examples/BasicHttpsClient/BasicHttpsClient.ino
+  //SHA1 fingerprint can be found by clicking on the Lock icon in a webbrowser when visiting the site in question
+  wifiClient.setFingerprint(fingerprint);
+  httpClient.begin(wifiClient, openWeatherEndPoint);
 
   int httpCode = httpClient.GET();
-  Serial.println(String(httpCode));
+  // Serial.println(String(httpCode));
 
   if(httpCode == HTTP_CODE_OK)
   {
     String payload = httpClient.getString();
 
-    Serial.println(payload);
+    // Serial.println(payload);
 
     DynamicJsonDocument doc(capacity);
     deserializeJson(doc, payload);
 
-    JsonObject main = doc["main"];
-    double main_temp = main["temp"];
+    JsonObject openWeatherDataMain = doc["main"];
+    JsonObject OpenWeatherDataWeather = doc["weather"][0];
+    JsonObject openWeatherDataWind = doc["wind"];
+
+    double temperature = openWeatherDataMain["temp"];
     char buffer[64];
-    sprintf(buffer, "Temperature: %.02f", main_temp);
+    sprintf(buffer, "Temp: %.02f", temperature);
     Serial.println(buffer);
 
-    // const int humidity = root["main"]["humidity"];
-    // sprintf(buffer, "Humidity: %d", humidity);
-    // Serial.println(buffer);
+    // parolaClient.setFont(1, nullptr);
+    // parolaClient.displayZoneText(1, buffer, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+    // parolaClient.displayAnimate();
+    // delay ( 10000 );
+    // parolaClient.setFont(1, fontTinyNumbers);
 
-    // const int pressure = root["main"]["pressure"];
-    // sprintf(buffer, "Pressure: %d", pressure);
-    // Serial.println(buffer);
+    int humidity = openWeatherDataMain["humidity"];
+    sprintf(buffer, "Humidity: %d", humidity);
+    Serial.println(buffer);
 
-    // const double wind = root["wind"]["speed"];
-    // sprintf(buffer, "Wind speed: %.02f m/s", wind);
-    // Serial.println(buffer);
+    int pressure = openWeatherDataMain["pressure"];
+    sprintf(buffer, "Pressure: %d", pressure);
+    Serial.println(buffer);
 
-    // const char* weather = root["weather"][0]["main"];
-    // const char* description = root["weather"][0]["description"];
-    // sprintf(buffer, "Weather: %s (%s)", weather, description);
-    // Serial.println(buffer);
+    double wind = openWeatherDataWind["speed"];
+    sprintf(buffer, "Wind speed: %.02f m/s", wind);
+    Serial.println(buffer);
+
+    const char* weather = OpenWeatherDataWeather["main"];
+    const char* description = OpenWeatherDataWeather["description"];
+    sprintf(buffer, "Weather: %s (%s)", weather, description);
+    Serial.println(buffer);
   }
+
   httpClient.end();
 }
 
