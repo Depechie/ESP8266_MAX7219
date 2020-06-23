@@ -1,6 +1,8 @@
 #include <NTPClient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <MD_Parola.h>
@@ -18,8 +20,8 @@
 
 #define BUF_SIZE  75
 
-const char *ssid = SSID_GUESTS;
-const char *password;
+const char *ssid = SSID_GENERAL;
+const char *password = WIFI_PASSWORD;
 const long utcOffsetInSeconds = 7200;
 
 const char *invader1icon = "\x01";
@@ -42,7 +44,7 @@ String openWeatherEndPoint = String(host) + String(url) +
                "&units=" + openweathermapunits +
                "&APPID=" + openweathermapid;
 
-String line;
+int displayMode = 0;
 // **
 
 char message[BUF_SIZE];
@@ -53,10 +55,37 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
-void setup()
-{
-  Serial.begin(115200);
+ESP8266WebServer server(80);
 
+void getDisplay() {
+    if (server.arg("mode") == "clock") {
+      parolaClient.displayClear();
+      displayMode = 1;
+    }
+
+    if (server.arg("mode") == "weather") {
+      parolaClient.displayClear();
+      displayMode = 2;
+    }
+ 
+    server.send(200, "text/json");
+}
+
+void setupWiFi() {
+  WiFi.begin(ssid, password);
+
+  while ( WiFi.status() != WL_CONNECTED ) {
+    delay ( 500 );
+    Serial.print ( "." );
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());  
+}
+
+void setupParola() {
   //Set 2 parola zones
   parolaClient.begin(2);
   parolaClient.setZone(0, 4, 4);
@@ -65,24 +94,50 @@ void setup()
   parolaClient.setFont(0, fontIcons);
   parolaClient.setFont(1, fontTinyNumbers);
 
-  parolaClient.displayZoneText(0, clockicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
   parolaClient.displayAnimate();
 
   //parolaClient.setIntensity(0, 1);
+}
 
-  WiFi.begin(ssid, password);
-
-  while ( WiFi.status() != WL_CONNECTED ) {
-    delay ( 500 );
-    Serial.print ( "." );
-  }
-
+void setupInternetTime() {
   timeClient.begin();
+}
 
+void setupRESTServiceRouting() {
+    server.on("/", HTTP_GET, []() {
+        server.send(200, F("text/html"),
+            F("Welcome to the REST Web Server"));
+    });
+
+    server.on(F("/display"), HTTP_GET, getDisplay);
+}
+
+void setupHandleNotFound() {
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
+}
+
+void setupRESTService() {
+  // Set server routing
+  setupRESTServiceRouting();
+  // Set not found response
+  server.onNotFound(setupHandleNotFound);
+  // Start server
+  server.begin();
+}
+
+void getOpenWeather() {
   Serial.println(openWeatherEndPoint);
-
-  //TODO: Glenn - Remove delay ( only needed for Serial monitor viewing )
-  delay ( 2500 );
 
   WiFiClientSecure wifiClient;
   HTTPClient httpClient;
@@ -137,16 +192,60 @@ void setup()
     Serial.println(buffer);
   }
 
-  httpClient.end();
+  httpClient.end();  
+}
+
+void displayClock() {  
+  timeClient.update();
+  timeClient.getFormattedTime().toCharArray(message, 75);
+  
+  parolaClient.displayZoneText(0, clockicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
+
+  delay(1000);  
+}
+
+void displayWeather() {
+
+  parolaClient.displayZoneText(0, celciusicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);  
+  //parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
+}
+
+void handleDisplayMode() {
+  switch (displayMode)
+  {
+    case 1:
+      displayClock();
+      break;
+    case 2:
+      displayWeather();
+      break;
+    default:
+      break;
+  }  
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  setupParola();
+
+  setupWiFi();
+  setupInternetTime();
+
+  //TODO: Glenn - Remove delay ( only needed for Serial monitor viewing )
+  delay ( 2500 );
+
+  // getOpenWeather();
+
+  setupRESTService();
 }
 
 void loop()
 {
-  timeClient.update();
-  timeClient.getFormattedTime().toCharArray(message, 75);
-  
-  parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  parolaClient.displayAnimate();
-
-  delay(1000);
+  server.handleClient();
+  handleDisplayMode();
 }
