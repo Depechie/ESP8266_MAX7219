@@ -45,11 +45,9 @@ String openWeatherEndPoint = String(host) + String(url) +
                "&APPID=" + openweathermapid;
 
 int displayMode = 0;
-// **
-
 char message[BUF_SIZE];
 
-// char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char temperatureBuffer[64];
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
@@ -58,13 +56,16 @@ MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 ESP8266WebServer server(80);
 
 void getDisplay() {
-    if (server.arg("mode") == "clock") {
+    if (server.arg("mode") == "clock") {      
       parolaClient.displayClear();
+      parolaClient.setFont(1, fontTinyNumbers);
       displayMode = 1;
     }
 
-    if (server.arg("mode") == "weather") {
+    if (server.arg("mode") == "weather") {      
       parolaClient.displayClear();
+      //Reset font to default
+      parolaClient.setFont(1, nullptr);
       displayMode = 2;
     }
  
@@ -91,8 +92,7 @@ void setupParola() {
   parolaClient.setZone(0, 4, 4);
   parolaClient.setZone(1, 0, 3);
 
-  parolaClient.setFont(0, fontIcons);
-  parolaClient.setFont(1, fontTinyNumbers);
+  parolaClient.setFont(0, fontIcons);  
 
   parolaClient.displayAnimate();
 
@@ -164,15 +164,17 @@ void getOpenWeather() {
     JsonObject openWeatherDataWind = doc["wind"];
 
     double temperature = openWeatherDataMain["temp"];
-    char buffer[64];
-    sprintf(buffer, "Temp: %.02f", temperature);
-    Serial.println(buffer);
+    
+    sprintf(temperatureBuffer, "%.02f", temperature);
+    Serial.println(temperatureBuffer);
 
     // parolaClient.setFont(1, nullptr);
     // parolaClient.displayZoneText(1, buffer, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
     // parolaClient.displayAnimate();
     // delay ( 10000 );
     // parolaClient.setFont(1, fontTinyNumbers);
+
+    char buffer[64];
 
     int humidity = openWeatherDataMain["humidity"];
     sprintf(buffer, "Humidity: %d", humidity);
@@ -207,9 +209,9 @@ void displayClock() {
 }
 
 void displayWeather() {
-
+  //TODO: Glenn - We need to keep track of 'when' we retrieved our weather data and only refresh after a certain period to not go over our API limit  
   parolaClient.displayZoneText(0, celciusicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);  
-  //parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayZoneText(1, temperatureBuffer, PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
   parolaClient.displayAnimate();
 }
 
@@ -239,7 +241,7 @@ void setup()
   //TODO: Glenn - Remove delay ( only needed for Serial monitor viewing )
   delay ( 2500 );
 
-  // getOpenWeather();
+  getOpenWeather();
 
   setupRESTService();
 }
