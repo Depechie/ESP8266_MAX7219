@@ -27,7 +27,9 @@ const long utcOffsetInSeconds = 7200;
 const char *invader1icon = "\x01";
 const char *invader2icon = "\x02";
 const char *clockicon = "\x03";
+const char *clock2icon = "\x0A";
 const char *celciusicon = "\x04";
+const char *wifiicon = "\x0c";
 
 // ** OpenWeather
 const char* host = "https://api.openweathermap.org";
@@ -75,15 +77,32 @@ void getDisplay() {
 void setupWiFi() {
   WiFi.begin(ssid, password);
 
+  parolaClient.displayZoneText(0, wifiicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
+
+  //parolaClient.displayZoneText(0, wifiicon, PA_LEFT, 20, 10, PA_FADE, PA_FADE);  
+
   while ( WiFi.status() != WL_CONNECTED ) {
+    // if(parolaClient.displayAnimate())
+    //   if(parolaClient.getZoneStatus(0))
+    //     parolaClient.displayReset();
+
     delay ( 500 );
     Serial.print ( "." );
   }
+
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());  
+  Serial.println(WiFi.localIP());
+  
+  // WiFi.localIP().toString().toCharArray(message, 75);
+
+  // parolaClient.displayClear();
+  // parolaClient.displayZoneText(0, wifiicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayZoneText(1, "ok", PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayAnimate();
 }
 
 void setupParola() {
@@ -92,9 +111,10 @@ void setupParola() {
   parolaClient.setZone(0, 4, 4);
   parolaClient.setZone(1, 0, 3);
 
-  parolaClient.setFont(0, fontIcons);  
+  parolaClient.setFont(0, fontIcons);
+  //parolaClient.setFont(1, fontTinyNumbers);
 
-  parolaClient.displayAnimate();
+  //parolaClient.displayAnimate();
 
   //parolaClient.setIntensity(0, 1);
 }
@@ -201,7 +221,7 @@ void displayClock() {
   timeClient.update();
   timeClient.getFormattedTime().toCharArray(message, 75);
   
-  parolaClient.displayZoneText(0, clockicon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  parolaClient.displayZoneText(0, clock2icon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
   parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
   parolaClient.displayAnimate();
 
