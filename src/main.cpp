@@ -39,6 +39,7 @@ const char *clockicon = "\x03";
 const char *clock2icon = "\x0A";
 const char *celciusicon = "\x04";
 const char *wifiicon = "\x0c";
+const char *calendaricon = "\x0d";
 
 // ** OpenWeather
 const char* host = "https://api.openweathermap.org";
