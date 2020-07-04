@@ -28,6 +28,11 @@ const char *ssid = SSID_GENERAL;
 const char *password = WIFI_PASSWORD;
 const long utcOffsetInSeconds = 7200;
 
+unsigned long currentMillis = 0;
+unsigned long previousClockMillis = 0;
+const int clockInterval = 1000; // 1 second delay
+
+// ** Font icons
 const char *invader1icon = "\x01";
 const char *invader2icon = "\x02";
 const char *clockicon = "\x03";
@@ -225,15 +230,17 @@ void getOpenWeather() {
   httpClient.end();  
 }
 
-void displayClock() {  
+void displayClock() {
   timeClient.update();
-  timeClient.getFormattedTime().toCharArray(message, 75);
-  
-  parolaClient.displayZoneText(0, clock2icon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  parolaClient.displayAnimate();
 
-  delay(1000);  
+  if (currentMillis - previousClockMillis >= clockInterval) {
+    timeClient.getFormattedTime().toCharArray(message, 75);
+
+    parolaClient.displayZoneText(0, clock2icon, PA_LEFT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+    parolaClient.displayZoneText(1, message, PA_RIGHT, 0, 0, PA_PRINT, PA_NO_EFFECT);
+    parolaClient.displayAnimate();
+    previousClockMillis += clockInterval;
+  }
 }
 
 void displayWeather() {
@@ -276,6 +283,8 @@ void setup()
 
 void loop()
 {
+  currentMillis = millis();
+
   httpServer.handleClient();
   handleDisplayMode();
 }
