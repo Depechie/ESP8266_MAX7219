@@ -1,5 +1,6 @@
 #include <NTPClient.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
@@ -20,6 +21,9 @@
 
 #define BUF_SIZE  75
 
+const char* update_path = "/firmware";
+const char* update_username = OTA_USER;
+const char* update_password = OTA_PASS;
 const char *ssid = SSID_GENERAL;
 const char *password = WIFI_PASSWORD;
 const long utcOffsetInSeconds = 7200;
@@ -55,23 +59,24 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
-ESP8266WebServer server(80);
+ESP8266WebServer httpServer(80);
+ESP8266HTTPUpdateServer httpUpdater;
 
 void getDisplay() {
-    if (server.arg("mode") == "clock") {      
+    if (httpServer.arg("mode") == "clock") {      
       parolaClient.displayClear();
       parolaClient.setFont(1, fontTinyNumbers);
       displayMode = 1;
     }
 
-    if (server.arg("mode") == "weather") {      
+    if (httpServer.arg("mode") == "weather") {      
       parolaClient.displayClear();
       //Reset font to default
       parolaClient.setFont(1, nullptr);
       displayMode = 2;
     }
  
-    server.send(200, "text/json");
+    httpServer.send(200, "text/json");
 }
 
 void setupWiFi() {
@@ -96,6 +101,9 @@ void setupWiFi() {
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  httpUpdater.setup(&httpServer, update_path, update_username, update_password);
+  //httpServer.begin(); > The actual server begin is in the Setup REST Service
   
   // WiFi.localIP().toString().toCharArray(message, 75);
 
@@ -124,36 +132,36 @@ void setupInternetTime() {
 }
 
 void setupRESTServiceRouting() {
-    server.on("/", HTTP_GET, []() {
-        server.send(200, F("text/html"),
+    httpServer.on("/", HTTP_GET, []() {
+        httpServer.send(200, F("text/html"),
             F("Welcome to the REST Web Server"));
     });
 
-    server.on(F("/display"), HTTP_GET, getDisplay);
+    httpServer.on(F("/display"), HTTP_GET, getDisplay);
 }
 
 void setupHandleNotFound() {
   String message = "File Not Found\n\n";
   message += "URI: ";
-  message += server.uri();
+  message += httpServer.uri();
   message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += (httpServer.method() == HTTP_GET) ? "GET" : "POST";
   message += "\nArguments: ";
-  message += server.args();
+  message += httpServer.args();
   message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  for (uint8_t i = 0; i < httpServer.args(); i++) {
+    message += " " + httpServer.argName(i) + ": " + httpServer.arg(i) + "\n";
   }
-  server.send(404, "text/plain", message);
+  httpServer.send(404, "text/plain", message);
 }
 
 void setupRESTService() {
   // Set server routing
   setupRESTServiceRouting();
   // Set not found response
-  server.onNotFound(setupHandleNotFound);
+  httpServer.onNotFound(setupHandleNotFound);
   // Start server
-  server.begin();
+  httpServer.begin();
 }
 
 void getOpenWeather() {
@@ -268,6 +276,6 @@ void setup()
 
 void loop()
 {
-  server.handleClient();
+  httpServer.handleClient();
   handleDisplayMode();
 }
