@@ -8,6 +8,8 @@
 #include <ArduinoJson.h>
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
+#include "SoftwareSerial.h"
+#include "DFRobotDFPlayerMini.h"
 
 #include "arduino_secrets.h"
 #include "fonts_data.h"
@@ -68,6 +70,9 @@ MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
 
+SoftwareSerial DFPlayerSoftwareSerial(D2, D1); // RX, TX
+DFRobotDFPlayerMini DFPlayer;
+
 void getDisplay() {
     if (httpServer.arg("mode") == "clock") {      
       parolaClient.displayClear();
@@ -80,6 +85,14 @@ void getDisplay() {
       //Reset font to default
       parolaClient.setFont(1, nullptr);
       displayMode = 2;
+    }
+ 
+    httpServer.send(200, "text/json");
+}
+
+void getSound() {
+    if (httpServer.arg("mode") == "doorbell") {      
+      DFPlayer.play(1);
     }
  
     httpServer.send(200, "text/json");
@@ -133,6 +146,19 @@ void setupParola() {
   //parolaClient.setIntensity(0, 1);
 }
 
+void setupDFPlayer() {
+  if (!DFPlayer.begin(DFPlayerSoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+    Serial.println(F("Unable to begin:"));
+    Serial.println(F("1.Please recheck the connection!"));
+    Serial.println(F("2.Please insert the SD card!"));
+    while(true);
+  }
+  Serial.println(F("DFPlayer Mini online."));
+
+  DFPlayer.volume(25);  //Set volume value. From 0 to 30
+  //DFPlayer.play(1);  //Play the first mp3
+}
+
 void setupInternetTime() {
   timeClient.begin();
 }
@@ -144,6 +170,8 @@ void setupRESTServiceRouting() {
     });
 
     httpServer.on(F("/display"), HTTP_GET, getDisplay);
+
+    httpServer.on(F("/sound"), HTTP_GET, getSound);
 }
 
 void setupHandleNotFound() {
@@ -267,9 +295,11 @@ void handleDisplayMode() {
 
 void setup()
 {
+  DFPlayerSoftwareSerial.begin(9600);
   Serial.begin(115200);
 
   setupParola();
+  setupDFPlayer();
 
   setupWiFi();
   setupInternetTime();
