@@ -305,7 +305,7 @@ void setup()
   setupInternetTime();
 
   //TODO: Glenn - Remove delay ( only needed for Serial monitor viewing )
-  delay ( 2500 );
+  //delay ( 2500 );
 
   getOpenWeather();
 
