@@ -13,6 +13,7 @@
 
 #include "arduino_secrets.h"
 #include "fonts_data.h"
+#include "variable.h"
 
 #define HARDWARE_TYPE MD_MAX72XX::GENERIC_HW
 #define MAX_DEVICES 5
@@ -69,6 +70,9 @@ MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
+
+WiFiClientSecure wifiClient;
+HTTPClient httpClient;
 
 SoftwareSerial DFPlayerSoftwareSerial(D2, D1); // RX, TX
 DFRobotDFPlayerMini DFPlayer;
@@ -201,9 +205,6 @@ void setupRESTService() {
 void getOpenWeather() {
   Serial.println(openWeatherEndPoint);
 
-  WiFiClientSecure wifiClient;
-  HTTPClient httpClient;
-
   //You need to set the website fingerprint to enable HTTPS - https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266HTTPClient/examples/BasicHttpsClient/BasicHttpsClient.ino
   //SHA1 fingerprint can be found by clicking on the Lock icon in a webbrowser when visiting the site in question
   wifiClient.setFingerprint(fingerprint);
@@ -318,4 +319,9 @@ void loop()
 
   httpServer.handleClient();
   handleDisplayMode();
+
+  if (currentMillis - Weather.last_refresh > Weather.refresh_delay) {
+    getOpenWeather();
+    Weather.last_refresh = millis();
+  }  
 }
