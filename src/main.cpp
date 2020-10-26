@@ -29,8 +29,9 @@ const char* update_username = OTA_USER;
 const char* update_password = OTA_PASS;
 const char *ssid = SSID_GENERAL;
 const char *password = WIFI_PASSWORD;
-const long utcOffsetInSeconds = 7200;
 
+//const long utcOffsetInSeconds = 7200;
+int GTMOffset = 1;
 unsigned long currentMillis = 0;
 unsigned long previousClockMillis = 0;
 const int clockInterval = 1000; // 1 second delay
@@ -65,7 +66,7 @@ char message[BUF_SIZE];
 char temperatureBuffer[64];
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
+NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", GTMOffset*60*60, 60*60*1000);
 MD_Parola parolaClient = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 ESP8266WebServer httpServer(80);
